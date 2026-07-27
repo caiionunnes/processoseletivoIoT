@@ -91,29 +91,29 @@ def checa_botao(agora):
 
     leitura = btn.value()
 
-    # Detectou mudança
+    # Detectou mudança de estado
     if leitura != btn_leitura_ant:
         btn_leitura_ant = leitura
         btn_troca_em = agora
         return
 
-    # Verifica se permaneceu estável por 50 ms
-    if (
-        time.ticks_diff(agora, btn_troca_em) > DEBOUNCE_BTN
-        and leitura != btn_estavel
-    ):
-        btn_estavel = leitura
+    # Aguarda o estado permanecer estável durante o debounce
+    if time.ticks_diff(agora, btn_troca_em) >= DEBOUNCE_BTN:
 
-        # Botão pressionado
-        if btn_estavel == 0:
+        if leitura != btn_estavel:
+            btn_estavel = leitura
 
-            if not btn_ja_resetou:
-                resetar_turno()
-                btn_ja_resetou = True
+            # Botão pressionado
+            if btn_estavel == 0:
 
-        # Botão liberado
-        else:
-            btn_ja_resetou = False
+                if not btn_ja_resetou:
+                    resetar_turno()
+                    btn_ja_resetou = True
+
+            # Botão liberado
+            elif btn_estavel == 1:
+
+                btn_ja_resetou = False
 
 
 # --- INICIALIZAÇÃO ---
