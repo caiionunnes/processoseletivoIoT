@@ -1,18 +1,24 @@
 from machine import Pin, ADC
 import time
 
+# --- CONFIGURAÇÃO DO HARDWARE ---
 ldr = ADC(Pin(34))
 ldr.atten(ADC.ATTN_11DB)
 
 btn = Pin(23, Pin.IN, Pin.PULL_UP)
 
-# sensor e invertido: mais luz = adc menor (testei no wokwi, 100k lux deu 512 e quase sem luz deu 65023)
-LIMIAR_LIVRE = 27000
-LIMIAR_BLOQUEIO = 33000
+# --- LIMIARES DO SENSOR ---
+# Mais luz = ADC menor
+# Menos luz = ADC maior
 
+LIMIAR_LIVRE = 20000
+LIMIAR_BLOQUEIO = 30000
+
+# --- PARÂMETROS ---
 TEMPO_MICROPARADA = 5000
 DEBOUNCE_BTN = 50
 
+# --- ESTADOS ---
 LIVRE = 0
 BLOQUEADO = 1
 
@@ -20,8 +26,10 @@ estado = LIVRE
 inicio_bloqueio = 0
 ja_alertou = False
 
+# --- CONTADOR ---
 total_pecas = 0
 
+# --- CONTROLE DO BOTÃO ---
 btn_leitura_ant = 1
 btn_troca_em = time.ticks_ms()
 btn_estavel = 1
@@ -44,47 +52,77 @@ def checa_sensor(agora):
 
     valor = ldr.read_u16()
 
+    # Linha livre
     if estado == LIVRE:
+
+        # Luz caiu: objeto bloqueou o sensor
         if valor > LIMIAR_BLOQUEIO:
             estado = BLOQUEADO
             inicio_bloqueio = agora
             ja_alertou = False
 
+    # Peça bloqueando o sensor
     else:
+
+        # Luz voltou: peça passou completamente
         if valor < LIMIAR_LIVRE:
             total_pecas += 1
+
             print("Peca detectada! Total: {}".format(total_pecas))
+
             estado = LIVRE
+
+        # Continua bloqueado
         else:
-            if not ja_alertou and time.ticks_diff(agora, inicio_bloqueio) > TEMPO_MICROPARADA:
+            if (
+                not ja_alertou
+                and time.ticks_diff(agora, inicio_bloqueio)
+                > TEMPO_MICROPARADA
+            ):
                 print("Alerta: Micro-parada detectada!")
                 ja_alertou = True
 
 
 def checa_botao(agora):
-    global btn_leitura_ant, btn_troca_em, btn_estavel, btn_ja_resetou
+    global btn_leitura_ant
+    global btn_troca_em
+    global btn_estavel
+    global btn_ja_resetou
 
     leitura = btn.value()
 
+    # Detectou mudança
     if leitura != btn_leitura_ant:
         btn_leitura_ant = leitura
         btn_troca_em = agora
         return
 
-    if time.ticks_diff(agora, btn_troca_em) > DEBOUNCE_BTN and leitura != btn_estavel:
+    # Verifica se permaneceu estável por 50 ms
+    if (
+        time.ticks_diff(agora, btn_troca_em) > DEBOUNCE_BTN
+        and leitura != btn_estavel
+    ):
         btn_estavel = leitura
 
+        # Botão pressionado
         if btn_estavel == 0:
+
             if not btn_ja_resetou:
                 resetar_turno()
                 btn_ja_resetou = True
+
+        # Botão liberado
         else:
             btn_ja_resetou = False
 
 
+# --- INICIALIZAÇÃO ---
 print("Contador de Producao Inicializado")
 
+
+# --- LOOP PRINCIPAL ---
 while True:
     agora = time.ticks_ms()
+
     checa_sensor(agora)
     checa_botao(agora)
