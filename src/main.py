@@ -30,9 +30,9 @@ ja_alertou = False
 total_pecas = 0
 
 # --- CONTROLE DO BOTÃO ---
-btn_leitura_ant = 1
+btn_leitura_ant = btn.value()
 btn_troca_em = time.ticks_ms()
-btn_estavel = 1
+btn_estavel = btn.value()
 btn_ja_resetou = False
 
 
@@ -77,7 +77,7 @@ def checa_sensor(agora):
             if (
                 not ja_alertou
                 and time.ticks_diff(agora, inicio_bloqueio)
-                > TEMPO_MICROPARADA
+                >= TEMPO_MICROPARADA
             ):
                 print("Alerta: Micro-parada detectada!")
                 ja_alertou = True
@@ -126,3 +126,6 @@ while True:
 
     checa_sensor(agora)
     checa_botao(agora)
+
+    # Pequena pausa para evitar uso excessivo da CPU
+    time.sleep_ms(5)
